@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Screen Unit Calculator</title>
+<meta name="theme-color" content="#141414">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Screen Units">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: shop-floor plain, fast entry on a phone
+   IDEA: a tape measure blade + a wall elevation sketch on a job sheet
+   PICTURE: live elevation and live tape strip
+   COLOUR and TYPE: tape yellow, black ink, tape red; Barlow Condensed + Barlow
+   LAYOUT: tab bar, then entries + big result; stacks on phone */
+:root{color-scheme:light dark;--bg:light-dark(#ffd21f,#141414);--ink:light-dark(#141414,#ffd21f);--card:light-dark(#fff6c7,#1f1f1f);--line:light-dark(#141414,#ffd21f);--red:#d92b1c;--mute:light-dark(#4a4220,#bfa950);--field:light-dark(#fff,#0d0d0d)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(20px,4vw,48px) max(5vw,16px);max-width:1100px;margin:0 auto}
+h1{font:700 clamp(32px,5vw,48px)/1.05 "Barlow Condensed",sans-serif;margin:0 0 4px;text-wrap:balance}
+.sub{margin:0 0 20px;color:var(--mute)}
+.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.panel{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:18px}
+h2{font:700 24px/1.1 "Barlow Condensed",sans-serif;margin:0 0 10px}
+.row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;margin-bottom:8px}
+.tag{font:700 20px "Barlow Condensed",sans-serif;text-align:center}
+.cell{position:relative}
+input{width:100%;font:600 24px "Barlow Condensed",sans-serif;padding:8px 12px;border:2px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);min-height:52px}
+input.bad{border-color:var(--red)}
+.conv{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--mute);pointer-events:none;white-space:nowrap}
+input:focus-visible,button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+button{font:600 16px Barlow,sans-serif;min-height:44px;padding:8px 16px;border-radius:10px;border:2px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+button.solid,button.on{background:var(--ink);color:var(--bg)}
+.rm{padding:0;font-size:22px;line-height:1}
+.rm:disabled{opacity:.25;cursor:default}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.unit{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.unit span{font-weight:600;margin-right:4px}
+.hint{font-size:14px;color:var(--mute);margin:10px 0 0}
+.hrow{margin-top:18px;padding-top:14px;border-top:2px dashed color-mix(in srgb,var(--line) 40%,transparent)}
+.big{font:700 clamp(56px,11vw,104px)/1 "Barlow Condensed",sans-serif;white-space:nowrap}
+.big small{font-size:.4em;margin-left:6px}
+.big.empty{color:var(--mute)}
+.formula{font-size:17px;margin-top:8px;overflow-wrap:anywhere}
+.alts{display:flex;flex-wrap:wrap;gap:4px 20px;margin-top:6px;color:var(--mute)}
+.alts b{color:var(--ink);white-space:nowrap}
+.fig{position:relative;height:260px;margin-top:16px;border-radius:10px;overflow:hidden;border:2px solid var(--line);background:var(--field)}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+@media(max-width:760px){.top{grid-template-columns:minmax(0,1fr)}.res{order:-1}.fig{height:200px}}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chips button.on{background:var(--ink);color:var(--bg)}
+.res{display:flex;flex-direction:column;justify-content:center}
+.tapefig{height:120px;background:#ffd21f}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-top:20px}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 30%,transparent)}
+li span{white-space:nowrap}
+li .x{min-height:36px;padding:4px 12px;font-size:14px}
+.total{display:flex;justify-content:space-between;font:700 24px "Barlow Condensed",sans-serif;margin-top:10px;white-space:nowrap}
+.empty-note{color:var(--mute);font-size:15px}
+.rev{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr);gap:12px;align-items:end}
+.rev .out{font:700 32px "Barlow Condensed",sans-serif;white-space:nowrap;padding-bottom:8px}
+label{display:block;font-weight:600;margin-bottom:6px}
+.tabs{position:sticky;top:0;z-index:5;display:flex;gap:8px;padding:calc(10px + env(safe-area-inset-top)) max(5vw,16px) 10px;background:var(--ink);justify-content:center}
+.tabs a{flex:1;max-width:260px;text-align:center;text-decoration:none;font:700 20px/1 "Barlow Condensed",sans-serif;padding:12px;border-radius:10px;color:var(--bg);border:2px solid var(--bg);min-height:44px}
+.tabs a.on{background:var(--bg);color:var(--ink)}
+.view[hidden]{display:none}
+body{padding-bottom:env(safe-area-inset-bottom)}
+@media(max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){.rev{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.rev .out{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<nav class="tabs"><a href="#screen" class="on">Screen units</a><a href="#convert">Inches → Feet</a></nav>
+<section class="band view" id="v-screen">
+  <h1>Screen unit calculator</h1>
+  <p class="sub" style="margin:0;color:var(--ink);font-weight:600">(M1 + M2 + …) × H</p>
+  <p class="sub">Enter feet. Put " or in after a number for inches, or type 12' 6" for feet and inches.</p>
+
+  <div class="top">
+    <div class="panel">
+      <div class="unit" role="group" aria-label="Plain numbers are">
+        <span>Plain numbers are</span><button data-u="ft" class="on">Feet</button><button data-u="in">Inches</button>
+      </div>
+      <div class="unit"><span>Round up to whole feet</span><button id="up" class="on" aria-pressed="true">On</button></div>
+      <h2>Measurements</h2>
+      <div id="rows"></div>
+      <div class="acts"><button class="solid" id="addRow">+ Add measurement</button><button id="reset">Clear all</button></div>
+      <div class="hrow">
+        <div class="row"><div class="tag">H</div><div class="cell"><input id="h" inputmode="text" autocomplete="off" aria-label="Height"><span class="conv" id="hc"></span></div><div></div></div>
+      </div>
+      <p class="hint">Examples: 12 · 12.5 · 12' 6" · 12-6 · 150" · 150 in · 96 1/2"</p>
+    </div>
+
+    <div class="panel res" aria-live="polite">
+      <div class="big" id="big">—</div>
+      <div class="formula" id="formula"></div>
+      <div class="alts" id="alts"></div>
+      <div class="acts"><button id="copy">Copy result</button></div>
+      <div class="fig" aria-hidden="true"><svg id="wall"></svg></div>
+    </div>
+  </div>
+</section>
+
+<section class="band view" id="v-convert" hidden>
+  <h1>Inches to feet &amp; inches</h1>
+  <p class="sub">Type the measurement in inches. Fractions are fine.</p>
+
+  <div class="top">
+    <div class="panel">
+      <label for="inch">Inches</label>
+      <input id="inch" inputmode="decimal" autocomplete="off" value="147 1/2" placeholder="e.g. 147 1/2">
+      <p class="hint">Works with 147, 147.5, 147 1/2 or 147-1/2</p>
+      <div class="chips" id="prec" role="group" aria-label="Round to">
+        <button data-p="16" class="on">1/16"</button><button data-p="8">1/8"</button><button data-p="4">1/4"</button><button data-p="2">1/2"</button>
+      </div>
+    </div>
+    <div class="panel res" aria-live="polite">
+      <div class="big" id="cbig">12' 3-1/2"</div>
+      <div class="alts" id="calts"></div>
+      <div class="acts">
+        <button class="solid" id="add">Add to list</button>
+        <button id="ccopy">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="fig tapefig" aria-hidden="true"><svg id="tape"></svg></div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Running list</h2>
+      <ul id="list"></ul>
+      <div class="total" id="total"></div>
+      <div class="acts"><button id="clear">Clear list</button></div>
+    </div>
+    <div class="panel">
+      <h2>Going the other way</h2>
+      <div class="rev">
+        <div><label for="rf">Feet</label><input id="rf" inputmode="decimal" placeholder="0"></div>
+        <div><label for="ri">Inches</label><input id="ri" inputmode="decimal" placeholder="0"></div>
+        <div class="out" id="rout">0"</div>
+      </div>
+      <p class="hint">Feet + inches back to total inches.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+let up=true, unit='ft', ms=['12','10\' 6"','150"'], hv='8';
+try{const d=JSON.parse(localStorage.getItem('wall-area')||'null');if(d&&Array.isArray(d.ms)&&d.ms.length){ms=d.ms.map(String);hv=String(d.hv||'');unit=d.unit==='in'?'in':'ft';up=d.up!==false}}catch(e){}
+const save=()=>{try{localStorage.setItem('wall-area',JSON.stringify({ms,hv,unit,up}))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// number with optional fraction: 12, 12.5, 1/2, 12 1/2, 12-1/2
+const nf=s=>{
+  s=s.trim();if(!s)return null;
+  const m=s.match(/^(\d*\.?\d+)?(?:[\s-]+)?(?:(\d+)\/(\d+))?$/);
+  if(!m||(!m[1]&&!m[2]))return null;
+  let v=m[1]?parseFloat(m[1]):0;
+  if(m[2]){if(!+m[3])return null;v+=(+m[2])/(+m[3])}
+  return v;
+};
+// returns feet, or null
+const len=raw=>{
+  let s=String(raw).trim().toLowerCase().replace(/[’′]/g,"'").replace(/[”″]|''/g,'"');
+  if(!s)return null;
+  let m=s.match(/^(\d*\.?\d+)\s*(?:'|ft|feet|foot)\s*[-,]?\s*(.*?)\s*(?:"|in|inch|inches)?$/);
+  if(m){const f=parseFloat(m[1]);if(!m[2])return f;const i=nf(m[2]);return i==null?null:f+i/12}
+  m=s.match(/^(.*?)\s*(?:"|in|inch|inches)$/);
+  if(m){const i=nf(m[1]);return i==null?null:i/12}
+  if(unit==='ft'){m=s.match(/^(\d+)-(\d*\.?\d+)$/);if(m)return +m[1]+(+m[2])/12} // 12-6 = 12 ft 6 in
+  const v=nf(s);if(v==null)return null;
+  return unit==='in'?v/12:v;
+};
+const rnd=v=>up?Math.max(0,Math.ceil(v-1e-9)):v;
+const fmt=(v,d=2)=>(+v.toFixed(d)).toLocaleString();
+const ftin=f=>{const n=Math.round(f*12*16),ft=Math.floor(n/192),r=n-ft*192,w=Math.floor(r/16),fr=r%16;
+  let s=`${ft}' ${w}`;if(fr){const g=(a,b)=>b?g(b,a%b):a,k=g(fr,16);s+=`-${fr/k}/${16/k}`}return s+'"'};
+const plainFt=raw=>/^\s*\d*\.?\d+\s*(?:'|ft|feet|foot)?\s*$/i.test(raw)&&unit==='ft'; // already plain feet
+
+const buildRows=()=>{
+  $('rows').innerHTML=ms.map((v,i)=>`<div class="row"><div class="tag">M${i+1}</div><div class="cell"><input data-i="${i}" inputmode="text" autocomplete="off" aria-label="Measurement ${i+1}" value="${esc(v)}"><span class="conv"></span></div><button class="rm" data-i="${i}" aria-label="Remove M${i+1}" ${ms.length<2?'disabled':''}>×</button></div>`).join('');
+};
+
+const conv=(el,c,raw)=>{
+  const v=len(raw);el.classList.toggle('bad',raw.trim()!==''&&v==null);
+  const rv=v==null?null:rnd(v);
+  c.textContent=v==null?'':rv!==v?`${fmt(v,2)} ft → ${rv} ft`:plainFt(raw)?'':`= ${fmt(v,3)} ft`;
+  return rv;
+};
+
+const calc=()=>{
+  const inputs=[...document.querySelectorAll('#rows input')];
+  const vals=inputs.map(el=>conv(el,el.nextElementSibling,el.value));
+  const H=conv($('h'),$('hc'),$('h').value);
+  const good=vals.filter(v=>v!=null);
+  const sum=good.reduce((a,b)=>a+b,0);
+  document.querySelectorAll('.unit button[data-u]').forEach(b=>b.classList.toggle('on',b.dataset.u===unit));
+  const ub=$('up');ub.classList.toggle('on',up);ub.textContent=up?'On':'Off';ub.setAttribute('aria-pressed',up);
+  const big=$('big');
+  if(!good.length||H==null){
+    big.classList.add('empty');big.textContent='—';
+    $('formula').textContent=H==null?'Enter a height to get square feet.':'Enter at least one measurement.';$('alts').innerHTML='';
+  }else{
+    const area=sum*H;
+    big.classList.remove('empty');big.innerHTML=`${fmt(area,1)}<small>sq ft</small>`;
+    $('formula').textContent=`(${good.map(v=>fmt(v)).join(' + ')}) × ${fmt(H)} = ${fmt(sum)} × ${fmt(H)}`;
+    $('alts').innerHTML=`<span>Total length <b>${fmt(sum)} ft</b>${up?'':` (${ftin(sum)})`}</span>${up?'':`<span>Height <b>${ftin(H)}</b></span>`}<span><b>${fmt(area/9,2)}</b> sq yd</span>`;
+  }
+  draw(vals,H);save();
+};
+
+const s=$('wall');let last=[[],null];
+const draw=(vals=last[0],H=last[1])=>{
+  last=[vals,H];
+  const W=s.clientWidth,Ht=s.clientHeight;if(!W)return;
+  const good=vals.map((v,i)=>({v,i})).filter(o=>o.v!=null&&o.v>0);
+  const ink=getComputedStyle(document.body).color;
+  if(!good.length){s.innerHTML='';return}
+  const sum=good.reduce((a,o)=>a+o.v,0),h=H&&H>0?H:sum*.3;
+  const pl=44,pr=14,pt=16,pb=40,aw=W-pl-pr,ah=Ht-pt-pb;
+  const sc=Math.min(aw/sum,ah/h),ww=sum*sc,wh=h*sc,x0=pl+(aw-ww)/2,y0=pt+(ah-wh);
+  let o=`<rect x="${x0}" y="${y0}" width="${ww}" height="${wh}" fill="#ffd21f" stroke="#141414" stroke-width="2"/>`;
+  let x=x0;
+  good.forEach((g,k)=>{
+    const w=g.v*sc;
+    if(k)o+=`<line x1="${x}" x2="${x}" y1="${y0}" y2="${y0+wh}" stroke="#141414" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    const lab=`M${g.i+1}`;
+    if(w>34)o+=`<text x="${x+w/2}" y="${y0+wh/2+7}" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="${w>70?22:16}" fill="#141414">${lab}</text>`;
+    if(w>54)o+=`<text x="${x+w/2}" y="${y0+wh+24}" text-anchor="middle" font-family="Barlow,Arial,sans-serif" font-size="14" fill="${ink}">${fmt(g.v)}'</text>`;
+    x+=w;
+  });
+  if(H&&H>0){
+    o+=`<line x1="${x0-16}" x2="${x0-16}" y1="${y0}" y2="${y0+wh}" stroke="#d92b1c" stroke-width="2.5"/><line x1="${x0-22}" x2="${x0-10}" y1="${y0}" y2="${y0}" stroke="#d92b1c" stroke-width="2.5"/><line x1="${x0-22}" x2="${x0-10}" y1="${y0+wh}" y2="${y0+wh}" stroke="#d92b1c" stroke-width="2.5"/>`;
+    o+=`<text x="${x0-24}" y="${y0+wh/2}" text-anchor="middle" transform="rotate(-90 ${x0-24} ${y0+wh/2})" dy="-4" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="16" fill="#d92b1c">H ${fmt(H)}'</text>`;
+  }
+  s.innerHTML=o;
+};
+const ro=new ResizeObserver(()=>draw());ro.observe(s);
+
+$('rows').addEventListener('input',e=>{const i=e.target.dataset.i;if(i==null)return;ms[+i]=e.target.value;calc()});
+$('rows').addEventListener('keydown',e=>{if(e.key!=='Enter'||e.target.dataset.i==null)return;e.preventDefault();const i=+e.target.dataset.i;
+  if(i===ms.length-1){ms.push('');buildRows();calc()}document.querySelector(`#rows input[data-i="${i+1}"]`)?.focus()});
+$('rows').addEventListener('click',e=>{const b=e.target.closest('.rm');if(!b||ms.length<2)return;ms.splice(+b.dataset.i,1);buildRows();calc()});
+$('addRow').addEventListener('click',()=>{ms.push('');buildRows();calc();document.querySelector(`#rows input[data-i="${ms.length-1}"]`).focus()});
+$('reset').addEventListener('click',()=>{ms=['',''];hv='';$('h').value='';buildRows();calc();document.querySelector('#rows input').focus()});
+$('h').addEventListener('input',e=>{hv=e.target.value;calc()});
+document.querySelector('.unit').addEventListener('click',e=>{const b=e.target.closest('button[data-u]');if(!b)return;unit=b.dataset.u;calc()});
+$('up').addEventListener('click',()=>{up=!up;calc()});
+$('copy').addEventListener('click',async()=>{const b=$('copy'),t=$('big').textContent.replace('sq ft',' sq ft');if(t==='—')return;
+  try{await navigator.clipboard.writeText(t+' — '+$('formula').textContent);b.textContent='Copied'}catch(e){b.textContent='Copy blocked'}
+  setTimeout(()=>b.textContent='Copy result',1400)});
+
+$('h').value=hv;buildRows();calc();
+}
+
+{
+const $=id=>document.getElementById(id);
+let prec=16, cur=147.5, list=[];
+try{list=JSON.parse(localStorage.getItem('inft-list')||'[]');const p=+localStorage.getItem('inft-prec');if([2,4,8,16].includes(p))prec=p}catch(e){}
+
+const parse=s=>{
+  s=String(s).trim().replace(/(inches|inch|in|")$/i,'').trim();
+  if(!s)return null;
+  let m=s.match(/^(\d*\.?\d+)?(?:[\s-]+)?(?:(\d+)\/(\d+))?$/);
+  if(!m||(!m[1]&&!m[2]))return null;
+  let v=m[1]?parseFloat(m[1]):0;
+  if(m[2]){const d=+m[3];if(!d)return null;v+=(+m[2])/d}
+  return v;
+};
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const ftin=(t,p=prec)=>{
+  const n=Math.round(t*p),per=12*p,ft=Math.floor(n/per),r=n-ft*per,w=Math.floor(r/p),f=r%p;
+  const showW=ft||w||!f;
+  let fr='';if(f){const g=gcd(f,p);fr=(showW?'-':'')+f/g+'/'+p/g}
+  const inch=(showW?w:'')+fr+'"';
+  return ft?`${ft}' ${inch}`:inch;
+};
+const inchStr=(t,p=prec)=>{
+  const n=Math.round(t*p),w=Math.floor(n/p),f=n%p;
+  if(!f)return w+'"';const g=gcd(f,p);return (w?w+' ':'')+f/g+'/'+p/g+'"';
+};
+const num=(v,d)=>(+v.toFixed(d)).toLocaleString();
+
+const save=()=>{try{localStorage.setItem('inft-list',JSON.stringify(list));localStorage.setItem('inft-prec',prec)}catch(e){}};
+
+const render=()=>{
+  const v=parse($('inch').value);cur=v;
+  const big=$('cbig');
+  if(v==null){big.textContent=$('inch').value.trim()?'Check that number':'—';big.classList.add('empty');$('calts').innerHTML='';}
+  else{
+    big.textContent=ftin(v);big.classList.remove('empty');
+    $('calts').innerHTML=`<span><b>${num(v/12,3)}</b> ft</span><span><b>${num(v/36,3)}</b> yd</span><span><b>${num(v*25.4,1)}</b> mm</span><span><b>${num(v*2.54/100,3)}</b> m</span>`;
+  }
+  document.querySelectorAll('#prec button').forEach(b=>b.classList.toggle('on',+b.dataset.p===prec));
+  draw();renderList();
+};
+
+const renderList=()=>{
+  if(!list.length){$('list').innerHTML='<li class="empty-note">Add measurements to total them up.</li>';$('total').innerHTML='';return}
+  $('list').innerHTML=list.map((v,i)=>`<li><span>${inchStr(v)}</span><span>${ftin(v)}</span><button class="x" data-i="${i}" aria-label="Remove">Remove</button></li>`).join('');
+  const t=list.reduce((a,b)=>a+b,0);
+  $('total').innerHTML=`<span>Total</span><span>${ftin(t)}</span>`;
+};
+
+const s=$('tape');
+const draw=()=>{
+  const W=s.clientWidth,H=s.clientHeight;if(!W)return;
+  const v=cur==null?0:cur, span=W<520?14:W<900?22:30, ppi=W/span, st=v-span/2, en=v+span/2;
+  let o='';
+  const step=ppi<28?8:16;
+  for(let i=Math.ceil(Math.max(0,st)*step);i<=Math.floor(en*step);i++){
+    const x=((i/step)-st)*ppi, k=i%step;
+    let L=k===0?46:k===step/2?32:k%(step/4)===0?24:k%(step/8)===0?17:11;
+    o+=`<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="0" y2="${L}" stroke="#141414" stroke-width="${k===0?2:1.2}"/>`;
+    if(k===0){
+      const n=i/step;
+      if(n>0&&n%12===0){o+=`<rect x="${(x-20).toFixed(1)}" y="52" width="40" height="24" rx="3" fill="#d92b1c"/><text x="${x.toFixed(1)}" y="70" text-anchor="middle" fill="#fff" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="18">${n/12}F</text>`}
+      else o+=`<text x="${x.toFixed(1)}" y="70" text-anchor="middle" fill="${n%16===0?'#d92b1c':'#141414'}" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="${ppi<28?15:19}">${n%12||12}</text>`;
+    }
+  }
+  if(st<0){o+=`<rect x="0" y="0" width="${(-st*ppi).toFixed(1)}" height="${H}" fill="#2a2a2a"/>`}
+  const cx=W/2;
+  if(cur!=null)o+=`<line x1="${cx}" x2="${cx}" y1="0" y2="${H}" stroke="#d92b1c" stroke-width="3"/><polygon points="${cx-9},${H} ${cx+9},${H} ${cx},${H-14}" fill="#d92b1c"/><rect x="${cx+8}" y="${H-34}" width="${Math.min(150,W/2-12)}" height="26" rx="4" fill="#141414"/><text x="${cx+16}" y="${H-15}" fill="#ffd21f" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="18">${inchStr(cur)}</text>`;
+  s.innerHTML=o;
+};
+const ro=new ResizeObserver(draw);ro.observe(s);
+
+const rev=()=>{
+  const f=parse($('rf').value)||0,i=parse($('ri').value)||0;
+  $('rout').textContent=inchStr(f*12+i);
+};
+
+$('inch').addEventListener('input',render);
+$('inch').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});
+$('prec').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;prec=+b.dataset.p;save();render();rev()});
+$('add').addEventListener('click',()=>{if(cur==null||cur<=0)return;list.push(cur);save();renderList();$('inch').select()});
+$('list').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;list.splice(+b.dataset.i,1);save();renderList()});
+$('clear').addEventListener('click',()=>{list=[];save();renderList()});
+$('ccopy').addEventListener('click',async()=>{
+  if(cur==null)return;const b=$('ccopy');
+  try{await navigator.clipboard.writeText(ftin(cur));b.textContent='Copied'}catch(e){b.textContent='Copy blocked'}
+  setTimeout(()=>b.textContent='Copy',1400);
+});
+$('rf').addEventListener('input',rev);$('ri').addEventListener('input',rev);
+render();rev();
+}
+
+
+{
+const views={screen:'v-screen',convert:'v-convert'};
+const show=()=>{const k=views[location.hash.slice(1)]?location.hash.slice(1):'screen';
+  for(const [n,id] of Object.entries(views)){document.getElementById(id).hidden=n!==k;document.querySelector(`.tabs a[href="#${n}"]`).classList.toggle('on',n===k)}
+  document.title=k==='screen'?'Screen Unit Calculator':'Inches to Feet';};
+addEventListener('hashchange',show);show();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

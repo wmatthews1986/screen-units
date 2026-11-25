@@ -1,0 +1,14 @@
+{
+  "name": "Screen Unit Calculator",
+  "short_name": "Screen Units",
+  "description": "Screen unit area (M1 + M2 + …) × H in whole feet, plus an inches-to-feet converter.",
+  "start_url": "./#screen",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffd21f",
+  "theme_color": "#141414",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
